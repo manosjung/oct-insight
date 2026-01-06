@@ -12,6 +12,8 @@ import torch
 from pytorch_grad_cam import GradCAM
 from pytorch_grad_cam.utils.image import show_cam_on_image
 from pytorch_grad_cam.utils.model_targets import ClassifierOutputTarget
+from huggingface_hub import hf_hub_download
+import shutil
 
 # --- SETUP ---
 # Fix for cross-platform Path compatibility (Windows <-> Linux)
@@ -147,8 +149,6 @@ st.markdown("""
 @st.cache_resource
 def load_model():
     """Loads the FastAI model once and caches it. Downloads from Hugging Face if needed."""
-    from huggingface_hub import hf_hub_download
-
     model_path = Path('models/baseline_model.pkl')
 
     # Download from Hugging Face if not present
@@ -162,14 +162,24 @@ def load_model():
                 cache_dir="./models"
             )
             # Copy to expected location
-            import shutil
             shutil.copy(downloaded_path, model_path)
             st.success("✅ Model downloaded successfully!")
         except Exception as e:
             st.error(f"Failed to download model: {e}")
+            st.stop()
             return None
 
-    return load_learner(model_path)
+    # Load the model
+    try:
+        st.info(f"Loading model from {model_path}...")
+        learner = load_learner(model_path)
+        st.success("✅ Model loaded successfully!")
+        return learner
+    except Exception as e:
+        st.error(f"Failed to load model: {e}")
+        st.error(f"Error details: {type(e).__name__}")
+        st.stop()
+        return None
 
 learn = load_model()
 
