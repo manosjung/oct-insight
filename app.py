@@ -246,19 +246,10 @@ def predict_image(learner, img):
     from PIL import Image
     from torchvision import transforms
 
-    # Convert FastAI PILImage to regular PIL Image
-    # FastAI's PILImage has a ._img attribute that holds the actual PIL Image
-    if hasattr(img, '_img'):
-        pil_img = img._img
-    elif isinstance(img, Image.Image):
-        pil_img = img
-    else:
-        # Fallback: treat as PIL Image
-        pil_img = img
-
+    # img is already a regular PIL Image from Image.open()
     # Convert to RGB if needed
-    if pil_img.mode != 'RGB':
-        pil_img = pil_img.convert('RGB')
+    if img.mode != 'RGB':
+        img = img.convert('RGB')
 
     # Define transforms manually (ImageNet normalization)
     preprocess = transforms.Compose([
@@ -268,7 +259,7 @@ def predict_image(learner, img):
     ])
 
     # Preprocess image
-    img_tensor = preprocess(pil_img).unsqueeze(0).cpu()
+    img_tensor = preprocess(img).unsqueeze(0).cpu()
 
     # Get prediction
     learner.model.eval()
@@ -476,8 +467,9 @@ if uploaded_file is not None:
                 try:
                     # Make Prediction using custom function
                     # Reset file pointer and ensure proper image loading
+                    from PIL import Image
                     uploaded_file.seek(0)
-                    img = PILImage.create(uploaded_file)
+                    img = Image.open(uploaded_file)
 
                     # Use custom prediction function to avoid transform pipeline issues
                     pred, pred_idx, probs = predict_image(learn, img)
