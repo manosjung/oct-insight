@@ -146,12 +146,30 @@ st.markdown("""
 # --- LOAD MODEL ---
 @st.cache_resource
 def load_model():
-    """Loads the FastAI model once and caches it."""
-    path = Path('models/baseline_model.pkl')
-    if not path.exists():
-        st.error(f"Model not found at {path}. Please train the model first.")
-        return None
-    return load_learner(path)
+    """Loads the FastAI model once and caches it. Downloads from Hugging Face if needed."""
+    from huggingface_hub import hf_hub_download
+
+    model_path = Path('models/baseline_model.pkl')
+
+    # Download from Hugging Face if not present
+    if not model_path.exists():
+        st.info("📥 Downloading model from Hugging Face (first run only, ~100MB)...")
+        try:
+            model_path.parent.mkdir(parents=True, exist_ok=True)
+            downloaded_path = hf_hub_download(
+                repo_id="manosjung/oct-insight-model",
+                filename="baseline_model.pkl",
+                cache_dir="./models"
+            )
+            # Copy to expected location
+            import shutil
+            shutil.copy(downloaded_path, model_path)
+            st.success("✅ Model downloaded successfully!")
+        except Exception as e:
+            st.error(f"Failed to download model: {e}")
+            return None
+
+    return load_learner(model_path)
 
 learn = load_model()
 
