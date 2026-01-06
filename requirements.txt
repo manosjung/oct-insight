@@ -1,11 +1,12 @@
-fastai
+--extra-index-url https://download.pytorch.org/whl/cpu
 torch
 torchvision
+fastai
 streamlit
 pandas
 numpy
 matplotlib
 scikit-learn
 grad-cam
-opencv-python
+opencv-python-headless
 plotly
