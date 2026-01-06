@@ -5,6 +5,7 @@ fastai==2.7.14
 fastcore>=1.5.29
 fastprogress>=1.0.3
 cloudpickle
+plum-dispatch
 streamlit
 pandas
 numpy
