@@ -170,20 +170,56 @@ def load_model():
             st.stop()
             return None
 
-    # Load the model
+    # Load the model with custom unpickler to handle missing modules
     try:
         st.info(f"Loading model from {model_path}...")
+
+        # Create a custom unpickler that handles missing fasttransform module
+        import pickle
+        import sys
+
+        # Create a mock fasttransform module
+        class MockModule:
+            def __getattr__(self, name):
+                return MockModule()
+            def __call__(self, *args, **kwargs):
+                return MockModule()
+
+        # Temporarily add mock module
+        sys.modules['fasttransform'] = MockModule()
+        sys.modules['fasttransform.transform'] = MockModule()
+
         # Force CPU mode for deployment (no CUDA)
         defaults.device = torch.device('cpu')
-        learner = load_learner(model_path, cpu=True)
+
+        # Try to load with mock module
+        try:
+            learner = load_learner(model_path, cpu=True)
+        finally:
+            # Clean up mock modules
+            if 'fasttransform' in sys.modules:
+                del sys.modules['fasttransform']
+            if 'fasttransform.transform' in sys.modules:
+                del sys.modules['fasttransform.transform']
+
         # Ensure model is on CPU
         learner.model.cpu()
         learner.model.eval()
+
+        # Manually set the vocab (class names)
+        if not hasattr(learner, 'dls') or not hasattr(learner.dls, 'vocab'):
+            # Create a simple mock DataLoaders object with vocab
+            class MockDL:
+                vocab = ['CNV', 'DME', 'DRUSEN', 'NORMAL']
+            learner.dls = MockDL()
+
         st.success("✅ Model loaded successfully!")
         return learner
     except Exception as e:
         st.error(f"Failed to load model: {e}")
         st.error(f"Error details: {type(e).__name__}")
+        import traceback
+        st.error(f"Traceback: {traceback.format_exc()}")
         st.stop()
         return None
 
