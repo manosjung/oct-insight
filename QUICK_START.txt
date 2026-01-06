@@ -1,0 +1,73 @@
+═══════════════════════════════════════════════════════════════
+  OCT-INSIGHT - QUICK DEPLOYMENT GUIDE
+═══════════════════════════════════════════════════════════════
+
+🎯 GOAL: Deploy your app to Streamlit Cloud in 10 minutes
+
+───────────────────────────────────────────────────────────────
+STEP 1: Test Locally (Optional)
+───────────────────────────────────────────────────────────────
+streamlit run app.py
+
+→ Test the app works
+→ Try Grad-CAM feature
+→ Press Ctrl+C to stop
+
+───────────────────────────────────────────────────────────────
+STEP 2: Initialize Git
+───────────────────────────────────────────────────────────────
+git init
+git lfs install
+git lfs track "*.pkl"
+git add .gitattributes
+git add .
+git commit -m "Initial commit: OCT-Insight with Grad-CAM"
+
+───────────────────────────────────────────────────────────────
+STEP 3: Create GitHub Repo
+───────────────────────────────────────────────────────────────
+1. Go to: https://github.com/new
+2. Name: oct-insight
+3. Visibility: PUBLIC
+4. Don't check "Initialize with README"
+5. Create repository
+
+───────────────────────────────────────────────────────────────
+STEP 4: Push to GitHub
+───────────────────────────────────────────────────────────────
+git remote add origin https://github.com/YOUR_USERNAME/oct-insight.git
+git branch -M main
+git push -u origin main
+
+Replace YOUR_USERNAME with your GitHub username!
+
+───────────────────────────────────────────────────────────────
+STEP 5: Deploy on Streamlit Cloud
+───────────────────────────────────────────────────────────────
+1. Go to: https://share.streamlit.io
+2. Sign in with GitHub
+3. Click "New app"
+4. Select: YOUR_USERNAME/oct-insight
+5. Branch: main
+6. Main file: app.py
+7. Click "Deploy!"
+
+Wait 5-10 minutes...
+
+───────────────────────────────────────────────────────────────
+STEP 6: Get Your URL & Share
+───────────────────────────────────────────────────────────────
+Your app URL: https://oct-insight.streamlit.app
+
+→ Test it works
+→ Share on LinkedIn (use LINKEDIN_AND_CV_CONTENT.md)
+→ Add to CV
+
+═══════════════════════════════════════════════════════════════
+
+✅ DONE! Your OCT-Insight app is live!
+
+For detailed instructions, see: DEPLOY_COMMANDS.md
+For LinkedIn post, see: LINKEDIN_AND_CV_CONTENT.md
+
+═══════════════════════════════════════════════════════════════

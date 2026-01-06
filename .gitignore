@@ -1,0 +1,47 @@
+# Data files (too large for GitHub)
+data/
+*.csv
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb
+
+# Environment
+venv/
+env/
+ENV/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+*.log
+
+# Legacy code (optional - keeping this for reference)
+# code/
+
+# Development logs (Turkish - keep private)
+GELISTIRME_GUNLUGU.md
+
+# Temporary files
+*.tmp
+*.temp
+.streamlit/
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/

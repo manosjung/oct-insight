@@ -1,0 +1,11 @@
+fastai
+torch
+torchvision
+streamlit
+pandas
+numpy
+matplotlib
+scikit-learn
+grad-cam
+opencv-python
+plotly
