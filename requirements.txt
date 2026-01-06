@@ -8,10 +8,10 @@ cloudpickle
 plum-dispatch
 streamlit
 pandas
-numpy
+numpy>=1.24.0
 matplotlib
 scikit-learn
-grad-cam
+pytorch-grad-cam
 opencv-python-headless
 plotly
 huggingface-hub

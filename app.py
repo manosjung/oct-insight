@@ -384,10 +384,8 @@ def generate_gradcam(model, img_tensor, pred_class):
     # Use tolist() then convert to numpy array manually
     img_hwc = img_denorm.permute(1, 2, 0).cpu().detach()
 
-    # Convert tensor to nested list, then to numpy array
-    import numpy as np
-    img_list = img_hwc.tolist()
-    img_np = np.array(img_list, dtype=np.float32)
+    # Convert tensor to numpy array (numpy already imported at top)
+    img_np = img_hwc.numpy().astype(np.float32)
 
     # Create visualization
     visualization = show_cam_on_image(img_np, grayscale_cam, use_rgb=True)
