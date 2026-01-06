@@ -174,44 +174,68 @@ def load_model():
     try:
         st.info(f"Loading model from {model_path}...")
 
-        # Create a custom unpickler that handles missing fasttransform module
         import pickle
         import sys
+        import types
 
-        # Create a mock fasttransform module
-        class MockModule:
-            def __getattr__(self, name):
-                return MockModule()
-            def __call__(self, *args, **kwargs):
-                return MockModule()
+        # Create proper stub classes for fasttransform module
+        # These need to be actual classes that can be instantiated by pickle
+        fasttransform_module = types.ModuleType('fasttransform')
+        transform_module = types.ModuleType('fasttransform.transform')
 
-        # Temporarily add mock module
-        sys.modules['fasttransform'] = MockModule()
-        sys.modules['fasttransform.transform'] = MockModule()
+        # Create stub transform classes that inherit from object
+        class Pipeline:
+            def __init__(self, *args, **kwargs):
+                self.fs = kwargs.get('fs', [])
+                self.split_idx = kwargs.get('split_idx', None)
+            def __call__(self, o):
+                return o
+
+        class Transform:
+            def __init__(self, *args, **kwargs):
+                pass
+            def __call__(self, x, **kwargs):
+                return x
+
+        # Add classes to the transform module
+        transform_module.Pipeline = Pipeline
+        transform_module.Transform = Transform
+        transform_module.compose_tfms = lambda o, **kwargs: o
+
+        # Register modules
+        sys.modules['fasttransform'] = fasttransform_module
+        sys.modules['fasttransform.transform'] = transform_module
 
         # Force CPU mode for deployment (no CUDA)
         defaults.device = torch.device('cpu')
 
-        # Try to load with mock module
+        # Try to load with stub modules
         try:
             learner = load_learner(model_path, cpu=True)
-        finally:
-            # Clean up mock modules
-            if 'fasttransform' in sys.modules:
-                del sys.modules['fasttransform']
-            if 'fasttransform.transform' in sys.modules:
-                del sys.modules['fasttransform.transform']
+        except Exception as load_error:
+            st.warning(f"Standard loading failed: {load_error}. Trying alternative method...")
+            # Alternative: extract just the model weights
+            import pickle as pkl
+            with open(model_path, 'rb') as f:
+                data = pkl.load(f)
+            # If this is a dict with 'model' key, extract it
+            if isinstance(data, dict) and 'model' in data:
+                learner = data
+            else:
+                raise load_error
 
         # Ensure model is on CPU
-        learner.model.cpu()
-        learner.model.eval()
+        if hasattr(learner, 'model'):
+            learner.model.cpu()
+            learner.model.eval()
 
-        # Manually set the vocab (class names)
-        if not hasattr(learner, 'dls') or not hasattr(learner.dls, 'vocab'):
-            # Create a simple mock DataLoaders object with vocab
+        # Manually set the vocab (class names) if missing
+        if not hasattr(learner, 'dls') or learner.dls is None:
             class MockDL:
                 vocab = ['CNV', 'DME', 'DRUSEN', 'NORMAL']
             learner.dls = MockDL()
+        elif not hasattr(learner.dls, 'vocab'):
+            learner.dls.vocab = ['CNV', 'DME', 'DRUSEN', 'NORMAL']
 
         st.success("✅ Model loaded successfully!")
         return learner
