@@ -210,19 +210,7 @@ def load_model():
         defaults.device = torch.device('cpu')
 
         # Try to load with stub modules
-        try:
-            learner = load_learner(model_path, cpu=True)
-        except Exception as load_error:
-            st.warning(f"Standard loading failed: {load_error}. Trying alternative method...")
-            # Alternative: extract just the model weights
-            import pickle as pkl
-            with open(model_path, 'rb') as f:
-                data = pkl.load(f)
-            # If this is a dict with 'model' key, extract it
-            if isinstance(data, dict) and 'model' in data:
-                learner = data
-            else:
-                raise load_error
+        learner = load_learner(model_path, cpu=True)
 
         # Ensure model is on CPU
         if hasattr(learner, 'model'):
