@@ -244,7 +244,6 @@ def predict_image(learner, img):
     to avoid tensor conversion issues in deployment.
     """
     from PIL import Image
-    import torchvision.transforms.functional as TF
 
     # img is already a regular PIL Image from Image.open()
     # Convert to RGB if needed
@@ -254,9 +253,24 @@ def predict_image(learner, img):
     # Resize to 224x224 (ResNet50 input size)
     img = img.resize((224, 224), Image.BILINEAR)
 
-    # Convert PIL Image to tensor manually (without numpy)
-    # PIL image is in [0, 255], we need [0, 1]
-    img_tensor = TF.pil_to_tensor(img).float() / 255.0
+    # Convert PIL Image to tensor manually without numpy
+    # Get pixel data as bytes
+    img_bytes = img.tobytes()
+
+    # Convert bytes to list of integers
+    img_list = list(img_bytes)
+
+    # Create tensor from list (HWC format: 224x224x3)
+    img_tensor = torch.tensor(img_list, dtype=torch.float32)
+
+    # Reshape to (H, W, C)
+    img_tensor = img_tensor.view(224, 224, 3)
+
+    # Convert to (C, H, W) format for PyTorch
+    img_tensor = img_tensor.permute(2, 0, 1)
+
+    # Normalize from [0, 255] to [0, 1]
+    img_tensor = img_tensor / 255.0
 
     # Apply ImageNet normalization
     mean = torch.tensor([0.485, 0.456, 0.406]).view(3, 1, 1)
@@ -536,7 +550,6 @@ if uploaded_file is not None:
                         try:
                             # Manually preprocess image for Grad-CAM (same as prediction)
                             from PIL import Image
-                            import torchvision.transforms.functional as TF
 
                             # img is already a regular PIL Image
                             pil_img = img
@@ -547,8 +560,13 @@ if uploaded_file is not None:
                             # Resize to 224x224
                             pil_img = pil_img.resize((224, 224), Image.BILINEAR)
 
-                            # Convert PIL Image to tensor manually (without numpy)
-                            img_tensor = TF.pil_to_tensor(pil_img).float() / 255.0
+                            # Convert PIL Image to tensor manually without numpy
+                            img_bytes = pil_img.tobytes()
+                            img_list = list(img_bytes)
+                            img_tensor = torch.tensor(img_list, dtype=torch.float32)
+                            img_tensor = img_tensor.view(224, 224, 3)
+                            img_tensor = img_tensor.permute(2, 0, 1)
+                            img_tensor = img_tensor / 255.0
 
                             # Apply ImageNet normalization
                             mean = torch.tensor([0.485, 0.456, 0.406]).view(3, 1, 1)
