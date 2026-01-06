@@ -14,6 +14,7 @@ from pytorch_grad_cam.utils.image import show_cam_on_image
 from pytorch_grad_cam.utils.model_targets import ClassifierOutputTarget
 from huggingface_hub import hf_hub_download
 import shutil
+import io
 
 # --- SETUP ---
 # Fix for cross-platform Path compatibility (Windows <-> Linux)
@@ -187,6 +188,48 @@ def load_model():
         return None
 
 learn = load_model()
+
+# --- CUSTOM PREDICTION FUNCTION ---
+def predict_image(learner, img):
+    """
+    Custom prediction function that bypasses FastAI's transform pipeline
+    to avoid tensor conversion issues in deployment.
+    """
+    from PIL import Image
+    from torchvision import transforms
+
+    # Ensure PIL Image
+    if isinstance(img, PILImage):
+        pil_img = img._repr_png_()
+        pil_img = Image.open(io.BytesIO(pil_img)) if pil_img else img
+    else:
+        pil_img = img
+
+    # Convert to RGB if needed
+    if pil_img.mode != 'RGB':
+        pil_img = pil_img.convert('RGB')
+
+    # Define transforms manually (ImageNet normalization)
+    preprocess = transforms.Compose([
+        transforms.Resize((224, 224)),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+    ])
+
+    # Preprocess image
+    img_tensor = preprocess(pil_img).unsqueeze(0).cpu()
+
+    # Get prediction
+    learner.model.eval()
+    with torch.no_grad():
+        output = learner.model(img_tensor)
+        probs = torch.nn.functional.softmax(output, dim=1)[0]
+
+    # Get predicted class
+    pred_idx = torch.argmax(probs).item()
+    pred_class = learner.dls.vocab[pred_idx]
+
+    return pred_class, pred_idx, probs
 
 # --- GRAD-CAM FUNCTION ---
 def generate_gradcam(model, img_tensor, pred_class):
@@ -379,14 +422,17 @@ if uploaded_file is not None:
     with col2:
         if learn:
             with st.spinner("Analyzing retina..."):
-                # Make Prediction
-                # Reset file pointer and ensure proper image loading
-                uploaded_file.seek(0)
-                img = PILImage.create(uploaded_file)
-                # Ensure image is in RGB mode
-                if img.mode != 'RGB':
-                    img = img.convert('RGB')
-                pred, pred_idx, probs = learn.predict(img)
+                try:
+                    # Make Prediction using custom function
+                    # Reset file pointer and ensure proper image loading
+                    uploaded_file.seek(0)
+                    img = PILImage.create(uploaded_file)
+
+                    # Use custom prediction function to avoid transform pipeline issues
+                    pred, pred_idx, probs = predict_image(learn, img)
+                except Exception as e:
+                    st.error(f"Prediction failed: {str(e)}")
+                    st.stop()
                 
                 # Get confidence score
                 confidence = probs[pred_idx] * 100
@@ -428,8 +474,27 @@ if uploaded_file is not None:
 
                     with st.spinner("Generating heatmap..."):
                         try:
-                            # Get the tensor from the image for Grad-CAM
-                            img_tensor = learn.dls.test_dl([img]).one_batch()[0][0]
+                            # Manually preprocess image for Grad-CAM (same as prediction)
+                            from PIL import Image
+                            from torchvision import transforms
+
+                            # Convert to PIL Image
+                            if isinstance(img, PILImage):
+                                pil_img = img._repr_png_()
+                                pil_img = Image.open(io.BytesIO(pil_img)) if pil_img else img
+                            else:
+                                pil_img = img
+
+                            if pil_img.mode != 'RGB':
+                                pil_img = pil_img.convert('RGB')
+
+                            # Apply transforms
+                            preprocess = transforms.Compose([
+                                transforms.Resize((224, 224)),
+                                transforms.ToTensor(),
+                                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+                            ])
+                            img_tensor = preprocess(pil_img).cpu()
 
                             # Generate Grad-CAM
                             gradcam_img = generate_gradcam(learn, img_tensor, pred)
