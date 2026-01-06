@@ -1,12 +1,13 @@
 --extra-index-url https://download.pytorch.org/whl/cpu
-torch
-torchvision
-fastai
+torch==2.1.0
+torchvision==0.16.0
+fastai==2.7.13
+fastprogress
 streamlit
 pandas
 numpy
 matplotlib
 scikit-learn
-grad-cam
+pytorch-grad-cam
 opencv-python-headless
 plotly
