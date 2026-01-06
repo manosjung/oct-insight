@@ -353,7 +353,12 @@ def generate_gradcam(model, img_tensor, pred_class):
     cam = GradCAM(model=pytorch_model, target_layers=target_layers)
 
     # Get class index from class name
-    class_idx = model.dls.vocab.o2i[pred_class]
+    # Handle both FastAI vocab (with o2i) and simple list vocab
+    if hasattr(model.dls.vocab, 'o2i'):
+        class_idx = model.dls.vocab.o2i[pred_class]
+    else:
+        # vocab is a simple list, use index()
+        class_idx = model.dls.vocab.index(pred_class)
     targets = [ClassifierOutputTarget(class_idx)]
 
     # Prepare input tensor (add batch dimension if needed)
