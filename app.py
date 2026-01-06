@@ -172,7 +172,12 @@ def load_model():
     # Load the model
     try:
         st.info(f"Loading model from {model_path}...")
-        learner = load_learner(model_path)
+        # Force CPU mode for deployment (no CUDA)
+        defaults.device = torch.device('cpu')
+        learner = load_learner(model_path, cpu=True)
+        # Ensure model is on CPU
+        learner.model.cpu()
+        learner.model.eval()
         st.success("✅ Model loaded successfully!")
         return learner
     except Exception as e:
@@ -375,7 +380,12 @@ if uploaded_file is not None:
         if learn:
             with st.spinner("Analyzing retina..."):
                 # Make Prediction
+                # Reset file pointer and ensure proper image loading
+                uploaded_file.seek(0)
                 img = PILImage.create(uploaded_file)
+                # Ensure image is in RGB mode
+                if img.mode != 'RGB':
+                    img = img.convert('RGB')
                 pred, pred_idx, probs = learn.predict(img)
                 
                 # Get confidence score
