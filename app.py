@@ -269,7 +269,14 @@ def predict_image(learner, img):
 
     # Get predicted class
     pred_idx = torch.argmax(probs).item()
-    pred_class = learner.dls.vocab[pred_idx]
+
+    # Safely get class name from vocab
+    try:
+        pred_class = learner.dls.vocab[pred_idx]
+    except:
+        # Fallback if vocab access fails
+        vocab = ['CNV', 'DME', 'DRUSEN', 'NORMAL']
+        pred_class = vocab[pred_idx]
 
     return pred_class, pred_idx, probs
 
@@ -475,6 +482,9 @@ if uploaded_file is not None:
                     pred, pred_idx, probs = predict_image(learn, img)
                 except Exception as e:
                     st.error(f"Prediction failed: {str(e)}")
+                    import traceback
+                    st.error(f"Full error trace:")
+                    st.code(traceback.format_exc())
                     st.stop()
                 
                 # Get confidence score
