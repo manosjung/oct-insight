@@ -254,13 +254,16 @@ def predict_image(learner, img):
     img = img.resize((224, 224), Image.BILINEAR)
 
     # Convert PIL Image to tensor manually without numpy
-    # Get pixel data as bytes
-    img_bytes = img.tobytes()
+    # Use getdata() which is more reliable than tobytes()
+    pixels = list(img.getdata())
 
-    # Convert bytes to list of integers
-    img_list = list(img_bytes)
+    # Flatten the list of tuples to a single list
+    # pixels is a list of (R, G, B) tuples
+    img_list = []
+    for pixel in pixels:
+        img_list.extend(pixel)
 
-    # Create tensor from list (HWC format: 224x224x3)
+    # Create tensor from list
     img_tensor = torch.tensor(img_list, dtype=torch.float32)
 
     # Reshape to (H, W, C)
@@ -378,7 +381,13 @@ def generate_gradcam(model, img_tensor, pred_class):
     img_denorm = torch.clamp(img_denorm, 0, 1)
 
     # Convert to numpy for show_cam_on_image (HWC format)
-    img_np = img_denorm.permute(1, 2, 0).cpu().detach().numpy()
+    # Use tolist() then convert to numpy array manually
+    img_hwc = img_denorm.permute(1, 2, 0).cpu().detach()
+
+    # Convert tensor to nested list, then to numpy array
+    import numpy as np
+    img_list = img_hwc.tolist()
+    img_np = np.array(img_list, dtype=np.float32)
 
     # Create visualization
     visualization = show_cam_on_image(img_np, grayscale_cam, use_rgb=True)
@@ -566,8 +575,10 @@ if uploaded_file is not None:
                             pil_img = pil_img.resize((224, 224), Image.BILINEAR)
 
                             # Convert PIL Image to tensor manually without numpy
-                            img_bytes = pil_img.tobytes()
-                            img_list = list(img_bytes)
+                            pixels = list(pil_img.getdata())
+                            img_list = []
+                            for pixel in pixels:
+                                img_list.extend(pixel)
                             img_tensor = torch.tensor(img_list, dtype=torch.float32)
                             img_tensor = img_tensor.view(224, 224, 3)
                             img_tensor = img_tensor.permute(2, 0, 1)
