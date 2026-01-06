@@ -8,6 +8,6 @@ pandas
 numpy
 matplotlib
 scikit-learn
-pytorch-grad-cam
+grad-cam
 opencv-python-headless
 plotly
