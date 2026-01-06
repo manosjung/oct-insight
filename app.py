@@ -244,22 +244,27 @@ def predict_image(learner, img):
     to avoid tensor conversion issues in deployment.
     """
     from PIL import Image
-    from torchvision import transforms
+    import torchvision.transforms.functional as TF
 
     # img is already a regular PIL Image from Image.open()
     # Convert to RGB if needed
     if img.mode != 'RGB':
         img = img.convert('RGB')
 
-    # Define transforms manually (ImageNet normalization)
-    preprocess = transforms.Compose([
-        transforms.Resize((224, 224)),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-    ])
+    # Resize to 224x224 (ResNet50 input size)
+    img = img.resize((224, 224), Image.BILINEAR)
 
-    # Preprocess image
-    img_tensor = preprocess(img).unsqueeze(0).cpu()
+    # Convert PIL Image to tensor manually (without numpy)
+    # PIL image is in [0, 255], we need [0, 1]
+    img_tensor = TF.pil_to_tensor(img).float() / 255.0
+
+    # Apply ImageNet normalization
+    mean = torch.tensor([0.485, 0.456, 0.406]).view(3, 1, 1)
+    std = torch.tensor([0.229, 0.224, 0.225]).view(3, 1, 1)
+    img_tensor = (img_tensor - mean) / std
+
+    # Add batch dimension
+    img_tensor = img_tensor.unsqueeze(0).cpu()
 
     # Get prediction
     learner.model.eval()
@@ -344,15 +349,17 @@ def generate_gradcam(model, img_tensor, pred_class):
     grayscale_cam = cam(input_tensor=input_tensor, targets=targets)
     grayscale_cam = grayscale_cam[0, :]  # Remove batch dimension
 
-    # Convert original image tensor to numpy for visualization
-    # FastAI normalizes with ImageNet stats, need to denormalize
-    img_np = img_tensor.permute(1, 2, 0).cpu().numpy()
-
+    # Convert original image tensor for visualization (without numpy)
     # Denormalize using ImageNet stats
-    mean = np.array([0.485, 0.456, 0.406])
-    std = np.array([0.229, 0.224, 0.225])
-    img_np = std * img_np + mean
-    img_np = np.clip(img_np, 0, 1)
+    mean = torch.tensor([0.485, 0.456, 0.406]).view(3, 1, 1)
+    std = torch.tensor([0.229, 0.224, 0.225]).view(3, 1, 1)
+
+    # Denormalize
+    img_denorm = img_tensor * std + mean
+    img_denorm = torch.clamp(img_denorm, 0, 1)
+
+    # Convert to numpy for show_cam_on_image (HWC format)
+    img_np = img_denorm.permute(1, 2, 0).cpu().detach().numpy()
 
     # Create visualization
     visualization = show_cam_on_image(img_np, grayscale_cam, use_rgb=True)
@@ -529,26 +536,25 @@ if uploaded_file is not None:
                         try:
                             # Manually preprocess image for Grad-CAM (same as prediction)
                             from PIL import Image
-                            from torchvision import transforms
+                            import torchvision.transforms.functional as TF
 
-                            # Convert FastAI PILImage to regular PIL Image
-                            if hasattr(img, '_img'):
-                                pil_img = img._img
-                            elif isinstance(img, Image.Image):
-                                pil_img = img
-                            else:
-                                pil_img = img
+                            # img is already a regular PIL Image
+                            pil_img = img
 
                             if pil_img.mode != 'RGB':
                                 pil_img = pil_img.convert('RGB')
 
-                            # Apply transforms
-                            preprocess = transforms.Compose([
-                                transforms.Resize((224, 224)),
-                                transforms.ToTensor(),
-                                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-                            ])
-                            img_tensor = preprocess(pil_img).cpu()
+                            # Resize to 224x224
+                            pil_img = pil_img.resize((224, 224), Image.BILINEAR)
+
+                            # Convert PIL Image to tensor manually (without numpy)
+                            img_tensor = TF.pil_to_tensor(pil_img).float() / 255.0
+
+                            # Apply ImageNet normalization
+                            mean = torch.tensor([0.485, 0.456, 0.406]).view(3, 1, 1)
+                            std = torch.tensor([0.229, 0.224, 0.225]).view(3, 1, 1)
+                            img_tensor = (img_tensor - mean) / std
+                            img_tensor = img_tensor.cpu()
 
                             # Generate Grad-CAM
                             gradcam_img = generate_gradcam(learn, img_tensor, pred)
