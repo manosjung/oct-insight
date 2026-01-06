@@ -198,11 +198,14 @@ def predict_image(learner, img):
     from PIL import Image
     from torchvision import transforms
 
-    # Ensure PIL Image
-    if isinstance(img, PILImage):
-        pil_img = img._repr_png_()
-        pil_img = Image.open(io.BytesIO(pil_img)) if pil_img else img
+    # Convert FastAI PILImage to regular PIL Image
+    # FastAI's PILImage has a ._img attribute that holds the actual PIL Image
+    if hasattr(img, '_img'):
+        pil_img = img._img
+    elif isinstance(img, Image.Image):
+        pil_img = img
     else:
+        # Fallback: treat as PIL Image
         pil_img = img
 
     # Convert to RGB if needed
@@ -478,10 +481,11 @@ if uploaded_file is not None:
                             from PIL import Image
                             from torchvision import transforms
 
-                            # Convert to PIL Image
-                            if isinstance(img, PILImage):
-                                pil_img = img._repr_png_()
-                                pil_img = Image.open(io.BytesIO(pil_img)) if pil_img else img
+                            # Convert FastAI PILImage to regular PIL Image
+                            if hasattr(img, '_img'):
+                                pil_img = img._img
+                            elif isinstance(img, Image.Image):
+                                pil_img = img
                             else:
                                 pil_img = img
 
