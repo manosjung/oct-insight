@@ -217,7 +217,7 @@ with torch.no_grad():
 - **Target Layer**: `layer4[-1]` (final convolutional block of ResNet50)
   - Has 2048 feature maps at 7×7 spatial resolution
   - Captures high-level semantic features (lesions, fluid, structures)
-- **Library**: `pytorch-grad-cam` (robust, well-maintained)
+- **Library**: `grad-cam` package (PyPI), imported as `pytorch_grad_cam`
 - **Fallback Strategy**: If `layer4` not found (due to model wrapping), searches for:
   1. Direct `layer4` attribute
   2. Sequential wrapper `model[0].layer4`
@@ -250,7 +250,7 @@ Even if Grad-CAM fails (rare), the prediction remains available.
 | **streamlit** | latest | Interactive web UI framework |
 | **numpy** | ≥1.24.0 | Numerical operations (heatmap visualization) |
 | **opencv-python-headless** | latest | Image processing (heatmap overlay) |
-| **pytorch-grad-cam** | latest | Grad-CAM implementation (explainability) |
+| **grad-cam** | ≥1.4.8 | Grad-CAM implementation (explainability) |
 | **plotly** | latest | Interactive probability charts |
 | **huggingface-hub** | latest | Model downloading from Hugging Face |
 | **pandas** | latest | Data manipulation (training phase) |
@@ -431,14 +431,16 @@ def generate_gradcam(model: Learner, img_tensor: torch.Tensor, pred_class: str) 
 
 #### 1. "Could not generate heatmap: Numpy is not available"
 
-**Cause**: Incorrect package name in requirements.txt (`grad-cam` instead of `pytorch-grad-cam`)
+**Cause**: Missing or incorrect Grad-CAM package in requirements.txt
 
 **Fix**:
 ```diff
-- grad-cam
-+ pytorch-grad-cam
+# requirements.txt
++ grad-cam>=1.4.8
 + numpy>=1.24.0
 ```
+
+**Note**: The PyPI package name is `grad-cam` (not `pytorch-grad-cam`), which installs as `pytorch_grad_cam` for imports.
 
 **Status**: ✅ Fixed in current version
 

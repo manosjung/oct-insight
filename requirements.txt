@@ -11,7 +11,7 @@ pandas
 numpy>=1.24.0
 matplotlib
 scikit-learn
-pytorch-grad-cam
+grad-cam>=1.4.8
 opencv-python-headless
 plotly
 huggingface-hub
