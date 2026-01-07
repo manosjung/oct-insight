@@ -8,7 +8,7 @@ cloudpickle
 plum-dispatch
 streamlit
 pandas
-numpy>=1.24.0
+numpy<2,>=1.24.0
 matplotlib
 scikit-learn
 grad-cam>=1.4.8
