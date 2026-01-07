@@ -1,3 +1,10 @@
+"""
+OCT-Insight: AI-Powered Retinal Disease Classification
+--------------------------------------------------------
+Streamlit web application for automated OCT scan analysis using ResNet50.
+Provides predictions with Grad-CAM explainability heatmaps.
+"""
+
 import streamlit as st
 import mimetypes
 mimetypes.add_type('application/javascript', '.js')
@@ -17,7 +24,8 @@ import shutil
 import io
 
 # --- SETUP ---
-# Fix for cross-platform Path compatibility (Windows <-> Linux)
+# Fix pathlib compatibility between Windows (dev) and Linux (deployment)
+# This prevents path-related crashes when loading pickled FastAI models
 import platform
 if platform.system() == 'Windows':
     temp = pathlib.PosixPath
@@ -25,7 +33,8 @@ if platform.system() == 'Windows':
 else:
     pathlib.WindowsPath = pathlib.PosixPath
 
-# Diagnostic: Check if grad-cam is properly installed
+# Check grad-cam availability (important for explainability feature)
+# If this fails, predictions will still work, but heatmaps won't be generated
 try:
     import pytorch_grad_cam
     GRADCAM_AVAILABLE = True
@@ -156,10 +165,13 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# --- LOAD MODEL ---
+# --- MODEL LOADING ---
 @st.cache_resource
 def load_model():
-    """Loads the FastAI model once and caches it. Downloads from Hugging Face if needed."""
+    """
+    Load the trained ResNet50 model. Downloads from Hugging Face on first run.
+    Cached to avoid reloading on every interaction.
+    """
     model_path = Path('models/baseline_model.pkl')
 
     # Download from Hugging Face if not present
@@ -247,11 +259,17 @@ def load_model():
 
 learn = load_model()
 
-# --- CUSTOM PREDICTION FUNCTION ---
+# --- PREDICTION PIPELINE ---
 def predict_image(learner, img):
     """
-    Custom prediction function that bypasses FastAI's transform pipeline
-    to avoid tensor conversion issues in deployment.
+    Run inference on an uploaded OCT image.
+
+    We use manual preprocessing instead of FastAI's default pipeline because:
+    - More control over tensor conversion (no numpy dependency issues)
+    - Avoids pickle-related transform errors in deployment
+    - Clearer debugging when things break
+
+    Returns: (predicted_class, class_index, probability_tensor)
     """
     from PIL import Image
 
@@ -312,18 +330,21 @@ def predict_image(learner, img):
 
     return pred_class, pred_idx, probs
 
-# --- GRAD-CAM FUNCTION ---
+# --- EXPLAINABILITY (GRAD-CAM) ---
 def generate_gradcam(model, img_tensor, pred_class):
     """
-    Generates Grad-CAM heatmap for the predicted class.
+    Generate Grad-CAM heatmap showing which parts of the image influenced the prediction.
+
+    This helps build trust in the model by visualizing its attention mechanism.
+    We target layer4 (last conv layer) of ResNet50 for the best spatial resolution.
 
     Args:
-        model: FastAI learner object
-        img_tensor: Preprocessed image tensor
-        pred_class: Predicted class name
+        model: FastAI learner with trained ResNet50
+        img_tensor: Preprocessed image tensor (3, 224, 224)
+        pred_class: The class we want to explain (e.g., "CNV")
 
     Returns:
-        Heatmap overlaid on original image
+        RGB image with heatmap overlay (red = high attention, blue = low)
     """
     # Get the underlying PyTorch model
     pytorch_model = model.model.eval()
@@ -487,12 +508,12 @@ with st.sidebar:
 
     # Diagnostic information
     with st.expander("🔧 System Diagnostics"):
+        gradcam_status = "✓ Installed" if GRADCAM_AVAILABLE else "✗ Not installed"
         st.markdown(f"""
         **Python Version**: {platform.python_version()}
         **Numpy**: {np.__version__}
         **PyTorch**: {torch.__version__}
-        **Grad-CAM Available**: {GRADCAM_AVAILABLE}
-        **Grad-CAM Version**: {GRADCAM_VERSION if GRADCAM_AVAILABLE else 'Not installed'}
+        **Grad-CAM**: {gradcam_status}
         """)
         if not GRADCAM_AVAILABLE:
             st.error(f"Grad-CAM Import Error: {GRADCAM_ERROR}")

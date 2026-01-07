@@ -100,8 +100,8 @@ oct2/
 
 ```bash
 # Clone repository
-git clone https://github.com/YOUR_USERNAME/oct-insight.git
-cd oct-insight
+git clone https://github.com/manosjung/oct2.git
+cd oct2
 
 # (Optional) Create virtual environment
 python -m venv venv
@@ -599,10 +599,10 @@ for name, module in model.model.named_modules():
 ### This Project
 ```bibtex
 @software{oct_insight_2025,
-  author = {Your Name},
+  author = {Faruk Orman},
   title  = {OCT-Insight: Explainable AI for Retinal Disease Classification},
   year   = {2025},
-  url    = {https://github.com/YOUR_USERNAME/oct-insight}
+  url    = {https://github.com/manosjung/oct2}
 }
 ```
 
@@ -624,8 +624,8 @@ Contributions, issues, and feature requests are welcome!
 
 ### Development Setup
 ```bash
-git clone https://github.com/YOUR_USERNAME/oct-insight.git
-cd oct-insight
+git clone https://github.com/manosjung/oct2.git
+cd oct2
 pip install -r requirements.txt
 pre-commit install  # (if using pre-commit hooks)
 ```
@@ -634,18 +634,14 @@ pre-commit install  # (if using pre-commit hooks)
 
 ## 📧 Contact & Support
 
-**Project Maintainer**: [Your Name]
-**Role**: Medical Doctor | AI/ML Engineer
+**Project Maintainer**: Faruk Orman
 
-- 🔗 **LinkedIn**: [Your Profile]
-- 📧 **Email**: [Your Email]
-- 🌐 **Portfolio**: [Your Website]
-- 🐙 **GitHub**: [Your GitHub]
+- 🔗 **LinkedIn**: [linkedin.com/in/farukorman](https://www.linkedin.com/in/farukorman/)
+- 🐙 **GitHub**: [@manosjung](https://github.com/manosjung)
 
 ### Getting Help
-- **Issues**: [GitHub Issues](https://github.com/YOUR_USERNAME/oct-insight/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/YOUR_USERNAME/oct-insight/discussions)
-- **Email**: For private inquiries or collaboration
+- **Issues**: [GitHub Issues](https://github.com/manosjung/oct2/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/manosjung/oct2/discussions)
 
 ---
 
@@ -690,9 +686,9 @@ Stars help others discover the project and motivate continued development.
 
 ## 📊 Project Stats
 
-![GitHub stars](https://img.shields.io/github/stars/YOUR_USERNAME/oct-insight?style=social)
-![GitHub forks](https://img.shields.io/github/forks/YOUR_USERNAME/oct-insight?style=social)
-![GitHub watchers](https://img.shields.io/github/watchers/YOUR_USERNAME/oct-insight?style=social)
+![GitHub stars](https://img.shields.io/github/stars/manosjung/oct2?style=social)
+![GitHub forks](https://img.shields.io/github/forks/manosjung/oct2?style=social)
+![GitHub watchers](https://img.shields.io/github/watchers/manosjung/oct2?style=social)
 
 **Last Updated**: January 2025
 **Version**: 1.0.0
@@ -700,6 +696,6 @@ Stars help others discover the project and motivate continued development.
 
 ---
 
-**Built with ❤️ by a physician passionate about translational medical AI**
+**Built by Faruk Orman**
 
-*Bridging clinical expertise with artificial intelligence for better patient care*
+*Exploring the intersection of medical imaging and deep learning*

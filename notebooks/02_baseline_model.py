@@ -1,52 +1,68 @@
+"""
+ResNet50 Baseline Model Training
+----------------------------------
+Train a ResNet50 classifier on the Kermany OCT dataset using FastAI.
+Uses transfer learning from ImageNet for faster convergence.
+
+Expected training time: ~10-30 minutes depending on hardware.
+"""
+
 from fastai.vision.all import *
 import os
 
 if __name__ == "__main__":
-    # --- AYARLAR ---
-    # Veri yolunu tanımlıyoruz
+    # Setup paths
     path = Path("data/raw/OCT2017")
-    # Modellerin kaydedileceği klasör
     model_dir = Path("models")
     model_dir.mkdir(exist_ok=True)
 
-    print("--- Model Eğitimi Başlıyor ---")
+    print("--- Starting Model Training ---")
 
-    # 1. Veri Yükleme (DataBlock Oluşturma)
-    # FastAI'ın "DataBlock" yapısı, veriyi nasıl okuyacağını tarif ettiğimiz yerdir.
-    print("1. Veriler hazırlanıyor...")
+    # 1. Data Loading and Preprocessing
+    print("1. Preparing data pipeline...")
+
+    # Define how to load and process the OCT images
     octs = DataBlock(
-        blocks=(ImageBlock, CategoryBlock), # Girdi: Resim, Çıktı: Kategori
-        get_items=get_image_files,          # Resim dosyalarını bulma fonksiyonu
-        splitter=GrandparentSplitter(train_name='train', valid_name='test'), # Klasör isimlerine göre eğitim/test ayrımı
-        get_y=parent_label,                 # Etiketi klasör isminden al (CNV, NORMAL vs.)
-        item_tfms=Resize(224),              # Resimleri 224x224 boyutuna getir (ResNet için standart)
-        batch_tfms=aug_transforms(size=224, min_scale=0.75) # Veri çoğaltma (Augmentation) - döndürme, yakınlaştırma vb.
+        blocks=(ImageBlock, CategoryBlock),
+        get_items=get_image_files,
+        # Split based on folder structure (train/ vs test/)
+        splitter=GrandparentSplitter(train_name='train', valid_name='test'),
+        # Label comes from parent folder name (CNV, DME, DRUSEN, NORMAL)
+        get_y=parent_label,
+        # Resize all images to 224x224 (standard ResNet input size)
+        item_tfms=Resize(224),
+        # Apply data augmentation to reduce overfitting
+        batch_tfms=aug_transforms(size=224, min_scale=0.75)
     )
 
-    # DataLoader'ı oluşturuyoruz. Bu, verileri gruplar (batch) halinde modele besler.
-    # batch_size=16 yaptık, bilgisayarın hafızası yetmezse düşürebiliriz (16 veya 8).
+    # Create dataloaders - handles batching and loading images during training
+    # Batch size of 64 works well for most GPUs, reduce to 32 or 16 if you get OOM errors
     dls = octs.dataloaders(path, batch_size=64, num_workers=0)
 
-    print(f"   Eğitim setindeki resim sayısı: {len(dls.train_ds)}")
-    print(f"   Doğrulama (Test) setindeki resim sayısı: {len(dls.valid_ds)}")
-    print(f"   Sınıflar: {dls.vocab}")
+    print(f"   Training images: {len(dls.train_ds):,}")
+    print(f"   Validation images: {len(dls.valid_ds):,}")
+    print(f"   Classes: {dls.vocab}")
 
-    # 2. Modeli Oluşturma (Learner)
-    # vision_learner fonksiyonu ile hazır bir model (ResNet50) kullanıyoruz.
-    # metrics=accuracy ile başarımızı "doğruluk oranı" olarak göreceğiz.
-    print("2. ResNet50 modeli indiriliyor ve hazırlanıyor...")
+    # 2. Model Setup
+    print("2. Initializing ResNet50 architecture...")
+    # Using pretrained ResNet50 from ImageNet as starting point
     learn = vision_learner(dls, resnet50, metrics=accuracy, path=Path("."))
 
-    # 3. Eğitim (Training)
-    # fine_tune: Transfer learning için kullanılan sihirli fonksiyon.
-    # Önce son katmanı eğitir, sonra tüm ağı yavaşça eğitir.
-    # epochs=1 yaptık şimdilik, çünkü veri çok büyük, uzun sürebilir.
-    print("3. Eğitim başlıyor (Bu işlem bilgisayar hızına göre zaman alabilir)...")
+    # 3. Training
+    # fine_tune() uses discriminative learning rates - trains the head first,
+    # then gradually unfreezes and trains the entire network
+    print("3. Training model (this may take a while)...")
+
+    # Start with 1 epoch for quick testing, increase to 5-10 for better results
     learn.fine_tune(1)
 
-    # 4. Kaydetme
-    print("4. Model kaydediliyor...")
+    # 4. Save Model
+    print("4. Exporting trained model...")
     learn.export('models/baseline_model.pkl')
-    print(f"   Model şuraya kaydedildi: {model_dir}/baseline_model.pkl")
+    print(f"   Model saved to: {model_dir}/baseline_model.pkl")
 
-    print("--- İşlem Tamamlandı ---")
+    print("--- Training Complete ---")
+    print("\nNext steps:")
+    print("  - Run app.py to test the model")
+    print("  - Check validation metrics above to assess performance")
+    print("  - Consider training for more epochs if accuracy is low")
