@@ -6,7 +6,7 @@ AI-powered classification of retinal diseases from OCT scans using deep learning
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.1.0-red.svg)](https://pytorch.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-**Live Demo:** [oct-insight.streamlit.app](https://oct-insight.streamlit.app/)
+**Live Demo:** [oct-insight-farukorman.streamlit.app](https://oct-insight-farukorman.streamlit.app/)
 
 ---
 
@@ -52,7 +52,7 @@ oct2/
 ## Quick Start
 
 ### Try the Live Demo
-Visit **[oct-insight.streamlit.app](https://oct-insight.streamlit.app/)** to test the model with your own OCT images.
+Visit **[oct-insight-farukorman.streamlit.app](https://oct-insight-farukorman.streamlit.app/)** to test the model with your own OCT images.
 
 ### Run Locally
 
