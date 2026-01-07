@@ -562,7 +562,7 @@ if uploaded_file is not None:
                 }
                 fig = px.bar(chart_data, x="Probability", y="Condition", orientation='h',
                              text_auto='.2%',
-                             color="Probability", color_continuous_scale=["#fafafa", "#18181b"])
+                             color="Probability", color_continuous_scale=["#18181b", "#fafafa"])
                 fig.update_layout(
                     showlegend=False,
                     height=250,
