@@ -248,7 +248,7 @@ Even if Grad-CAM fails (rare), the prediction remains available.
 | **torchvision** | 0.16.0 | Image transformations and pre-trained models |
 | **fastai** | 2.7.14 | High-level training API, transfer learning utilities |
 | **streamlit** | latest | Interactive web UI framework |
-| **numpy** | ≥1.24.0 | Numerical operations (heatmap visualization) |
+| **numpy** | <2,≥1.24.0 | Numerical operations (heatmap visualization) - Must be 1.x for PyTorch 2.1 compatibility |
 | **opencv-python-headless** | latest | Image processing (heatmap overlay) |
 | **grad-cam** | ≥1.4.8 | Grad-CAM implementation (explainability) |
 | **plotly** | latest | Interactive probability charts |
@@ -429,18 +429,33 @@ def generate_gradcam(model: Learner, img_tensor: torch.Tensor, pred_class: str) 
 
 ### Common Issues
 
-#### 1. "Could not generate heatmap: Numpy is not available"
+#### 1. "Could not generate heatmap: Numpy is not available" / "_ARRAY_API not found"
 
-**Cause**: Missing or incorrect Grad-CAM package in requirements.txt
+**Cause**: NumPy 2.x compatibility issue with PyTorch 2.1.0
+
+**Error Message**:
+```
+Failed to initialize NumPy: _ARRAY_API not found
+A module that was compiled using NumPy 1.x cannot be run in NumPy 2.2.6
+```
+
+**Root Cause**:
+- PyTorch 2.1.0 was compiled with NumPy 1.x
+- NumPy 2.x has breaking C API changes
+- Grad-CAM internally calls `.numpy()` which fails with NumPy 2.x
 
 **Fix**:
 ```diff
 # requirements.txt
+- numpy>=1.24.0
++ numpy<2,>=1.24.0
 + grad-cam>=1.4.8
-+ numpy>=1.24.0
 ```
 
-**Note**: The PyPI package name is `grad-cam` (not `pytorch-grad-cam`), which installs as `pytorch_grad_cam` for imports.
+**Note**:
+- The PyPI package name is `grad-cam` (not `pytorch-grad-cam`)
+- Must force NumPy 1.x (e.g., 1.26.4) for PyTorch 2.1 compatibility
+- This is a common issue in the PyTorch ecosystem
 
 **Status**: ✅ Fixed in current version
 
