@@ -25,6 +25,16 @@ if platform.system() == 'Windows':
 else:
     pathlib.WindowsPath = pathlib.PosixPath
 
+# Diagnostic: Check if grad-cam is properly installed
+try:
+    import pytorch_grad_cam
+    GRADCAM_AVAILABLE = True
+    GRADCAM_VERSION = getattr(pytorch_grad_cam, '__version__', 'unknown')
+except ImportError as e:
+    GRADCAM_AVAILABLE = False
+    GRADCAM_VERSION = None
+    GRADCAM_ERROR = str(e)
+
 # Page Config
 st.set_page_config(
     page_title="OCT-Insight | AI-Powered Retinal Analysis",
@@ -475,6 +485,18 @@ with st.sidebar:
     st.markdown("---")
     st.warning("⚠️ **Research Prototype Only**  \nNot for clinical diagnosis")
 
+    # Diagnostic information
+    with st.expander("🔧 System Diagnostics"):
+        st.markdown(f"""
+        **Python Version**: {platform.python_version()}
+        **Numpy**: {np.__version__}
+        **PyTorch**: {torch.__version__}
+        **Grad-CAM Available**: {GRADCAM_AVAILABLE}
+        **Grad-CAM Version**: {GRADCAM_VERSION if GRADCAM_AVAILABLE else 'Not installed'}
+        """)
+        if not GRADCAM_AVAILABLE:
+            st.error(f"Grad-CAM Import Error: {GRADCAM_ERROR}")
+
 # Main Area
 st.markdown("### 📤 Upload OCT Scan")
 
@@ -558,59 +580,66 @@ if uploaded_file is not None:
                     st.markdown("**Heatmap**: Shows which areas of the scan the AI examined to make this diagnosis.")
                     st.markdown("🔴 **Red** = AI focused here | 🔵 **Blue** = Less important")
 
-                    with st.spinner("Generating heatmap..."):
-                        try:
-                            # Manually preprocess image for Grad-CAM (same as prediction)
-                            from PIL import Image
+                    if not GRADCAM_AVAILABLE:
+                        st.error("⚠️ Grad-CAM library is not available. Please check System Diagnostics in the sidebar.")
+                        st.info("The diagnosis above is still valid.")
+                    else:
+                        with st.spinner("Generating heatmap..."):
+                            try:
+                                # Manually preprocess image for Grad-CAM (same as prediction)
+                                from PIL import Image
 
-                            # img is already a regular PIL Image
-                            pil_img = img
+                                # img is already a regular PIL Image
+                                pil_img = img
 
-                            if pil_img.mode != 'RGB':
-                                pil_img = pil_img.convert('RGB')
+                                if pil_img.mode != 'RGB':
+                                    pil_img = pil_img.convert('RGB')
 
-                            # Resize to 224x224
-                            pil_img = pil_img.resize((224, 224), Image.BILINEAR)
+                                # Resize to 224x224
+                                pil_img = pil_img.resize((224, 224), Image.BILINEAR)
 
-                            # Convert PIL Image to tensor manually without numpy
-                            pixels = list(pil_img.getdata())
-                            img_list = []
-                            for pixel in pixels:
-                                img_list.extend(pixel)
-                            img_tensor = torch.tensor(img_list, dtype=torch.float32)
-                            img_tensor = img_tensor.view(224, 224, 3)
-                            img_tensor = img_tensor.permute(2, 0, 1)
-                            img_tensor = img_tensor / 255.0
+                                # Convert PIL Image to tensor manually without numpy
+                                pixels = list(pil_img.getdata())
+                                img_list = []
+                                for pixel in pixels:
+                                    img_list.extend(pixel)
+                                img_tensor = torch.tensor(img_list, dtype=torch.float32)
+                                img_tensor = img_tensor.view(224, 224, 3)
+                                img_tensor = img_tensor.permute(2, 0, 1)
+                                img_tensor = img_tensor / 255.0
 
-                            # Apply ImageNet normalization
-                            mean = torch.tensor([0.485, 0.456, 0.406]).view(3, 1, 1)
-                            std = torch.tensor([0.229, 0.224, 0.225]).view(3, 1, 1)
-                            img_tensor = (img_tensor - mean) / std
-                            img_tensor = img_tensor.cpu()
+                                # Apply ImageNet normalization
+                                mean = torch.tensor([0.485, 0.456, 0.406]).view(3, 1, 1)
+                                std = torch.tensor([0.229, 0.224, 0.225]).view(3, 1, 1)
+                                img_tensor = (img_tensor - mean) / std
+                                img_tensor = img_tensor.cpu()
 
-                            # Generate Grad-CAM
-                            gradcam_img = generate_gradcam(learn, img_tensor, pred)
+                                # Generate Grad-CAM
+                                gradcam_img = generate_gradcam(learn, img_tensor, pred)
 
-                            # Display side by side
-                            col_orig, col_grad = st.columns(2)
-                            with col_orig:
-                                st.image(uploaded_file, caption="Original Scan", use_container_width=True)
-                            with col_grad:
-                                st.image(gradcam_img, caption=f"AI Focus Areas: {pred}", use_container_width=True)
+                                # Display side by side
+                                col_orig, col_grad = st.columns(2)
+                                with col_orig:
+                                    st.image(uploaded_file, caption="Original Scan", use_container_width=True)
+                                with col_grad:
+                                    st.image(gradcam_img, caption=f"AI Focus Areas: {pred}", use_container_width=True)
 
-                            # Simplified explanation based on prediction
-                            if pred == "NORMAL":
-                                st.success("✅ **For Normal scans**: The AI checked these areas to confirm no abnormalities are present.")
-                            elif pred == "CNV":
-                                st.warning("⚠️ **For CNV**: Red areas likely show subretinal fluid or abnormal blood vessels (signs of wet AMD).")
-                            elif pred == "DME":
-                                st.warning("⚠️ **For DME**: Red areas likely show intraretinal fluid pockets (diabetic swelling).")
-                            elif pred == "DRUSEN":
-                                st.info("ℹ️ **For Drusen**: Red areas likely show deposits under the retina (signs of dry AMD).")
+                                # Simplified explanation based on prediction
+                                if pred == "NORMAL":
+                                    st.success("✅ **For Normal scans**: The AI checked these areas to confirm no abnormalities are present.")
+                                elif pred == "CNV":
+                                    st.warning("⚠️ **For CNV**: Red areas likely show subretinal fluid or abnormal blood vessels (signs of wet AMD).")
+                                elif pred == "DME":
+                                    st.warning("⚠️ **For DME**: Red areas likely show intraretinal fluid pockets (diabetic swelling).")
+                                elif pred == "DRUSEN":
+                                    st.info("ℹ️ **For Drusen**: Red areas likely show deposits under the retina (signs of dry AMD).")
 
-                        except Exception as e:
-                            st.error(f"Could not generate heatmap: {str(e)}")
-                            st.info("The diagnosis above is still valid.")
+                            except Exception as e:
+                                st.error(f"Could not generate heatmap: {str(e)}")
+                                st.error(f"Exception type: {type(e).__name__}")
+                                import traceback
+                                st.code(traceback.format_exc())
+                                st.info("The diagnosis above is still valid.")
 
 # Footer
 st.markdown("---")
